@@ -38,6 +38,13 @@ nb-configuration.xml
 
 # Local environment
 .env
+.env.*
+!.env.example
+*.p8
+*service-account*.json
+*credentials*.json
+*.pem
+*.key
 
 # Plugin directory
 /.quarkus/cli/plugins/

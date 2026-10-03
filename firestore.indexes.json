@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    { "collectionGroup": "products", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "storeId", "order": "ASCENDING" }, { "fieldPath": "categoryId", "order": "ASCENDING" }
+    ] },
+    { "collectionGroup": "products", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "storeId", "order": "ASCENDING" }, { "fieldPath": "active", "order": "ASCENDING" }
+    ] },
+    { "collectionGroup": "products", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "storeId", "order": "ASCENDING" }, { "fieldPath": "categoryId", "order": "ASCENDING" },
+      { "fieldPath": "active", "order": "ASCENDING" }
+    ] },
+    { "collectionGroup": "inventoryMovements", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "storeId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ] }
+  ],
+  "fieldOverrides": [
+    { "collectionGroup": "members", "fieldPath": "personId", "indexes": [
+      { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+    ] }
+  ]
+}
