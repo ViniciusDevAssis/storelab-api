@@ -68,7 +68,7 @@ Após validar o token, `CurrentPersonService` usa `provider + sub` para encontra
 
 ## CORS, variáveis e configuração
 
-CORS permite em dev `http://localhost:3000` e `http://localhost:5173`, somente métodos e headers usados pela API e sem cookies. Produção deve definir `CORS_ORIGINS` com as origens HTTPS exatas do frontend; não use `*`. Veja [.env.example](.env.example), que contém apenas placeholders:
+CORS permite em dev `http://localhost:3000`, somente métodos e headers usados pela API e sem cookies. Produção deve definir `CORS_ORIGINS` com as origens HTTPS exatas do frontend; não use `*`. Veja [.env.example](.env.example), que contém apenas placeholders:
 
 - `GOOGLE_CLIENT_ID`, `APPLE_SERVICES_ID`, `GCP_PROJECT_ID`;
 - `GOOGLE_APPLICATION_CREDENTIALS` (caminho externo à pasta versionada; em cloud prefira identidade gerenciada);
