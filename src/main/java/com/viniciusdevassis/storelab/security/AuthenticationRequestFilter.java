@@ -13,19 +13,30 @@ import jakarta.ws.rs.ext.Provider;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 /** Produces the same JSON error contract for anonymous requests as the API's other exception mappers. */
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationRequestFilter implements ContainerRequestFilter {
+    private static final Set<String> OIDC_FLOW_PATHS = Set.of(
+            "/auth/google/login", "/auth/google/callback",
+            "/auth/apple/login", "/auth/apple/callback",
+            "/auth/logout");
+
     @Inject SecurityIdentity identity;
 
     @Override
     public void filter(ContainerRequestContext request) {
-        if (identity.isAnonymous()) {
+        String path = normalizePath(request.getUriInfo().getPath());
+        if (identity.isAnonymous() && !OIDC_FLOW_PATHS.contains(path)) {
             var error = new ApiError(401, "UNAUTHENTICATED", "Authentication is required",
-                    request.getUriInfo().getPath(), Instant.now(), List.of());
+                    path, Instant.now(), List.of());
             request.abortWith(Response.status(401).type(MediaType.APPLICATION_JSON).entity(error).build());
         }
+    }
+
+    static String normalizePath(String path) {
+        return "/" + path.replaceFirst("^/+", "");
     }
 }

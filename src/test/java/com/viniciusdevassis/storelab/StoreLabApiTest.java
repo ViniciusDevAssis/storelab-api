@@ -35,9 +35,66 @@ class StoreLabApiTest {
 
     @Test
     void protectedEndpointsRequireAnIdentity() {
-        given().get("/auth/me").then().statusCode(401).body("code", equalTo("UNAUTHENTICATED"));
-        given().get("/stores").then().statusCode(401);
+        given().get("/auth/me").then().statusCode(401).contentType(containsString("application/json"))
+                .body("code", equalTo("UNAUTHENTICATED"));
+        given().get("/stores").then().statusCode(401).contentType(containsString("application/json"))
+                .header("Location", nullValue());
         given().get("/route-that-does-not-exist").then().statusCode(404);
+    }
+
+    @Test
+    void corsPreflightAllowsOnlyConfiguredFrontendWithCredentials() {
+        given().header("Origin", "http://localhost:3000")
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "content-type")
+                .options("/stores")
+                .then().statusCode(200)
+                .header("Access-Control-Allow-Origin", equalTo("http://localhost:3000"))
+                .header("Access-Control-Allow-Credentials", equalTo("true"));
+    }
+
+    @Test
+    void logoutIsIdempotentWithoutSession() {
+        given().post("/auth/logout").then().statusCode(204);
+        given().get("/auth/me").then().statusCode(401).body("code", equalTo("UNAUTHENTICATED"));
+    }
+
+    @Test
+    @TestSecurity(user = "logout-principal", attributes = @SecurityAttribute(key = "tenant-id", value = "google"))
+    @OidcSecurity(claims = {
+            @Claim(key = "sub", value = "logout-oidc-subject"),
+            @Claim(key = "email", value = "logout@example.test")
+    })
+    void authenticatedSessionCanBeLoggedOutLocally() {
+        given().contentType("application/json").post("/auth/logout").then().statusCode(204);
+    }
+
+    @Test
+    @TestSecurity(user = "identity-without-tenant")
+    @OidcSecurity(claims = {
+            @Claim(key = "sub", value = "identity-without-tenant-subject"),
+            @Claim(key = "email", value = "unknown-provider@example.test")
+    })
+    void authenticatedIdentityWithoutTenantIsDenied() {
+        given().get("/auth/me").then().statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "google-callback-user", attributes = @SecurityAttribute(key = "tenant-id", value = "google"))
+    @OidcSecurity(claims = @Claim(key = "sub", value = "google-callback-subject"))
+    void googleOidcCallbackRouteExistsForAuthenticatedIdentity() {
+        given().redirects().follow(false).get("/auth/google/callback")
+                .then().statusCode(303)
+                .header("Location", equalTo("http://localhost:3000/dashboard"));
+    }
+
+    @Test
+    @TestSecurity(user = "apple-callback-user", attributes = @SecurityAttribute(key = "tenant-id", value = "apple"))
+    @OidcSecurity(claims = @Claim(key = "sub", value = "apple-callback-subject"))
+    void appleOidcCallbackRouteExistsForAuthenticatedIdentity() {
+        given().redirects().follow(false).post("/auth/apple/callback")
+                .then().statusCode(303)
+                .header("Location", equalTo("http://localhost:3000/dashboard"));
     }
 
     @Test
@@ -58,6 +115,21 @@ class StoreLabApiTest {
                 .get().get().getDocuments().getFirst();
         assertEquals("GOOGLE", identity.getString("provider"));
         assertEquals(first.getString("id"), identity.getString("personId"));
+    }
+
+    @Test
+    @TestSecurity(user = "apple-principal", attributes = @SecurityAttribute(key = "tenant-id", value = "apple"))
+    @OidcSecurity(claims = {
+            @Claim(key = "sub", value = "apple-subject-stable-test"),
+            @Claim(key = "email", value = "apple-user@example.test"),
+            @Claim(key = "name", value = "Apple Study User")
+    })
+    void currentPersonUsesAppleTenantWithOidcSubject() throws Exception {
+        var profile = given().get("/auth/me").then().statusCode(200).extract().response().jsonPath();
+        assertEquals("APPLE", profile.getString("provider"));
+        var identity = firestore.collection("externalIdentities").whereEqualTo("subject", "apple-subject-stable-test")
+                .get().get().getDocuments().getFirst();
+        assertEquals("APPLE", identity.getString("provider"));
     }
 
     @Test
